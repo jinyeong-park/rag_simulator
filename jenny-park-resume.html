@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jenny Park — Resume</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --accent: #7c6ff7;
+    --accent2: #a594ff;
+    --teal: #2dd4bf;
+    --coral: #f97066;
+    --amber: #fbbf24;
+    --text: #e8e6ff;
+    --muted: rgba(232,230,255,0.5);
+    --faint: rgba(232,230,255,0.22);
+    --grid: rgba(124,111,247,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* PRINT STYLES */
+  @media print {
+    body { background: white; color: #111; font-size: 11px; }
+    .page { max-width: 100%; padding: 18px 24px; }
+    .grid-bg, .scanlines { display: none; }
+    :root { --black: white; --surface: #f5f5f8; --surface2: #ededf5; --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18); --accent: #5a4fd8; --accent2: #7c6ff7; --teal: #0f9485; --coral: #d85030; --amber: #c9930c; --text: #111; --muted: #555; --faint: #bbb; }
+    .tag { page-break-inside: avoid; }
+    section { page-break-inside: avoid; }
+    .no-print { display: none !important; }
+    .print-break { page-break-before: always; }
+  }
+
+  /* BACKGROUND */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* CORNER GLOW */
+  .glow-corner {
+    position: fixed;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-tl { top: -200px; left: -150px; background: rgba(124,111,247,0.15); }
+  .glow-br { bottom: -200px; right: -150px; background: rgba(45,212,191,0.08); }
+
+  /* LAYOUT */
+  .page {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 40px 60px;
+  }
+
+  /* HEADER */
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: start;
+    margin-bottom: 40px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border2);
+    position: relative;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+
+  .name-block {}
+
+  .name-prefix {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .name {
+    font-family: 'Syne', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 0%, var(--accent2) 60%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+
+  .title-line {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .title-sep {
+    color: var(--accent);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .contact-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+    padding-top: 8px;
+  }
+
+  .contact-item {
+    font-family: 'Space Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s;
+  }
+
+  .contact-item:hover { color: var(--text); }
+
+  .contact-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .location-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(45,212,191,0.08);
+    border: 1px solid rgba(45,212,191,0.2);
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--teal);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* BODY GRID */
+  .body-grid {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  /* SECTIONS */
+  .section {
+    margin-bottom: 28px;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border2), transparent);
+  }
+
+  /* EXPERIENCE */
+  .exp-item {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s, background 0.25s;
+  }
+
+  .exp-item:hover {
+    border-color: var(--border2);
+    background: var(--surface2);
+  }
+
+  .exp-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--accent), transparent);
+    border-radius: 2px 0 0 2px;
+  }
+
+  .exp-item.teal::before { background: linear-gradient(180deg, var(--teal), transparent); }
+  .exp-item.coral::before { background: linear-gradient(180deg, var(--coral), transparent); }
+  .exp-item.amber::before { background: linear-gradient(180deg, var(--amber), transparent); }
+
+  .exp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .exp-role {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .exp-period {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+
+  .exp-company {
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 7px;
+    font-weight: 500;
+  }
+
+  .exp-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .exp-bullets li {
+    font-size: 12.5px;
+    color: var(--muted);
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .exp-bullets li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  /* SIDEBAR */
+  .sidebar {}
+
+  /* SKILLS */
+  .skills-group {
+    margin-bottom: 18px;
+  }
+
+  .skills-group-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    border: 1px solid;
+  }
+
+  .tag-purple { background: rgba(124,111,247,0.1); border-color: rgba(124,111,247,0.3); color: var(--accent2); }
+  .tag-teal   { background: rgba(45,212,191,0.08); border-color: rgba(45,212,191,0.25); color: var(--teal); }
+  .tag-coral  { background: rgba(249,112,102,0.08); border-color: rgba(249,112,102,0.25); color: #f97066; }
+  .tag-amber  { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.2); color: var(--amber); }
+  .tag-faint  { background: rgba(255,255,255,0.04); border-color: var(--border); color: var(--muted); }
+
+  /* STAT BOXES */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent2);
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* EDUCATION */
+  .edu-item {
+    margin-bottom: 12px;
+    padding-left: 14px;
+    border-left: 2px solid var(--border2);
+  }
+
+  .edu-degree {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 2px;
+  }
+
+  .edu-school {
+    font-size: 11.5px;
+    color: var(--teal);
+    margin-bottom: 2px;
+  }
+
+  .edu-year {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--faint);
+  }
+
+  /* LANGUAGES */
+  .lang-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .lang-name {
+    font-size: 12.5px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .lang-level {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .lang-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+
+  .lang-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--teal));
+  }
+
+  /* GLOBAL BADGE */
+  .globe-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .flag {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* SUMMARY */
+  .summary {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 28px;
+    padding: 14px 18px;
+    background: rgba(124,111,247,0.05);
+    border: 1px solid rgba(124,111,247,0.12);
+    border-radius: 8px;
+    border-left: 2px solid var(--accent);
+  }
+
+  /* PRINT BUTTON */
+  .print-btn {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    padding: 10px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    z-index: 100;
+    transition: background 0.2s, transform 0.15s;
+  }
+
+  .print-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+  .print-btn:active { transform: scale(0.97); }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .page { padding: 28px 20px 48px; }
+    .name { font-size: 34px; }
+    .body-grid { grid-template-columns: 1fr; }
+    .header { grid-template-columns: 1fr; }
+    .contact-block { align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+<div class="glow-corner glow-tl"></div>
+<div class="glow-corner glow-br"></div>
+
+<button class="print-btn no-print" onclick="window.print()">↓ Download PDF</button>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="name-block">
+      <div class="name-prefix">// portfolio · 2026</div>
+      <h1 class="name">Jenny Park</h1>
+      <div class="title-line">
+        <span>Product Manager</span>
+        <span class="title-sep">·</span>
+        <span>AdTech</span>
+        <span class="title-sep">·</span>
+        <span>AI-Powered Growth</span>
+      </div>
+    </div>
+
+    <div class="contact-block">
+      <div class="location-badge">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="currentColor" stroke-width="1.2"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/></svg>
+        San Jose, CA · USA
+      </div>
+      <div class="contact-item">
+        <span class="contact-dot"></span>
+        <span>byjennypark@gmail.com</span>
+      </div>
+      <div class="contact-item">
+        <span class="contact-dot"></span>
+        <span>linkedin.com/in/jennypark</span>
+      </div>
+      <div class="contact-item">
+        <span class="contact-dot"></span>
+        <span>github.com/jinyeong-park</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- SUMMARY -->
+  <div class="summary">
+    Multi-disciplinary technologist with a rare arc: from international cabin crew and English instructor across the Middle East &amp; Southeast Asia, to software engineering graduate of UPenn, to building JYNLAB — a performance media buying operation. I bring engineering rigor, global business instincts, and hands-on AI fluency to every campaign.
+  </div>
+
+  <!-- BODY -->
+  <div class="body-grid">
+
+    <!-- LEFT COLUMN: EXPERIENCE -->
+    <main>
+
+      <section class="section">
+        <div class="section-label">Experience</div>
+
+        <div class="exp-item">
+          <div class="exp-header">
+            <div class="exp-role">Founder · Media Buyer</div>
+            <div class="exp-period">2025 – Present</div>
+          </div>
+          <div class="exp-company">JYNLAB · San Jose, CA</div>
+          <ul class="exp-bullets">
+            <li>Building a performance media buying agency specializing in Meta Ads with active expansion into TikTok, YouTube, and LinkedIn.</li>
+            <li>Architecting full-funnel ad strategies — creative briefs, audience segmentation, bid optimization, and attribution modeling.</li>
+            <li>Leveraging engineering background to build internal tools and dashboards that automate reporting and creative testing.</li>
+            <li>Applying AI tooling to accelerate ad copy, creative iterations, and competitor analysis workflows.</li>
+          </ul>
+        </div>
+
+        <div class="exp-item teal">
+          <div class="exp-header">
+            <div class="exp-role">Product Manager (AI Focus)</div>
+            <div class="exp-period">2024</div>
+          </div>
+          <div class="exp-company">SAP · Remote / Bay Area</div>
+          <ul class="exp-bullets">
+            <li>Contributed to AI-era product initiatives as part of a second internship cycle, proactively re-skilling ahead of the LLM wave.</li>
+            <li>Built features in enterprise SaaS environment; collaborated with cross-functional product and engineering teams.</li>
+          </ul>
+        </div>
+
+        <div class="exp-item coral">
+          <div class="exp-header">
+            <div class="exp-role">Software Developer Intern</div>
+            <div class="exp-period">2021</div>
+          </div>
+          <div class="exp-company">SAP · Remote</div>
+          <ul class="exp-bullets">
+            <li>First industry software engineering role during UPenn MCIT program; developed and tested features in an Agile environment.</li>
+            <li>Gained hands-on experience with enterprise-grade codebases and deployment pipelines.</li>
+          </ul>
+        </div>
+
+        <div class="exp-item amber">
+          <div class="exp-header">
+            <div class="exp-role">Finance &amp; Executive Assistant</div>
+            <div class="exp-period">2017 – 2019</div>
+          </div>
+          <div class="exp-company">Korean Automotive Firm · Southeast Asia</div>
+          <ul class="exp-bullets">
+            <li>Managed executive operations, financial data, and cross-border reporting for regional leadership.</li>
+            <li>Transitioned organically into data-heavy finance responsibilities — a pivotal moment that directed the path toward tech.</li>
+            <li>Operated in bilingual (KO/EN) multinational environment across SEA markets.</li>
+          </ul>
+        </div>
+
+        <div class="exp-item">
+          <div class="exp-header">
+            <div class="exp-role">International Cabin Crew</div>
+            <div class="exp-period">2012 – 2016</div>
+          </div>
+          <div class="exp-company">International Airline · Middle East</div>
+          <ul class="exp-bullets">
+            <li>Represented a global brand across 40+ countries; trained in high-stakes customer operations and multilingual communication.</li>
+            <li>Systematized peer interview preparation processes — early signal of a pattern for turning complex problems into scalable structures.</li>
+          </ul>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- RIGHT COLUMN: SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- STATS -->
+      <section class="section">
+        <div class="section-label">At a Glance</div>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="stat-num">3+</div>
+            <div class="stat-label">Countries lived</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num">40+</div>
+            <div class="stat-label">Countries visited</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num">2x</div>
+            <div class="stat-label">SAP Intern</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num">10+</div>
+            <div class="stat-label">Yrs work exp</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- EDUCATION -->
+      <section class="section">
+        <div class="section-label">Education</div>
+
+        <div class="edu-item">
+          <div class="edu-degree">M.S. Computer &amp; Information Technology</div>
+          <div class="edu-school">University of Pennsylvania</div>
+          <div class="edu-year">2021 – 2025</div>
+        </div>
+
+        <div class="edu-item">
+          <div class="edu-degree">Software Engineering Bootcamp</div>
+          <div class="edu-school">Hack Reactor</div>
+          <div class="edu-year">2019 – 2020</div>
+        </div>
+
+        <div class="edu-item">
+          <div class="edu-degree">SQL, Python, Data Analysis</div>
+          <div class="edu-school">UCLA Extension</div>
+          <div class="edu-year">2018 – 2019</div>
+        </div>
+
+        <div class="edu-item">
+          <div class="edu-degree">B.A. Business Administration</div>
+          <div class="edu-school">Korea</div>
+          <div class="edu-year">2008 – 2012</div>
+        </div>
+
+      </section>
+
+      <!-- SKILLS -->
+      <section class="section">
+        <div class="section-label">Technical Skills</div>
+
+        <div class="skills-group">
+          <div class="skills-group-label">Media &amp; Growth</div>
+          <div class="tags">
+            <span class="tag tag-purple">Meta Ads</span>
+            <span class="tag tag-purple">TikTok Ads</span>
+            <span class="tag tag-purple">YouTube Ads</span>
+            <span class="tag tag-purple">LinkedIn Ads</span>
+            <span class="tag tag-purple">A/B Testing</span>
+            <span class="tag tag-purple">ROAS Optimization</span>
+          </div>
+        </div>
+
+        <div class="skills-group">
+          <div class="skills-group-label">Engineering</div>
+          <div class="tags">
+            <span class="tag tag-teal">Python</span>
+            <span class="tag tag-teal">SQL</span>
+            <span class="tag tag-teal">JavaScript</span>
+            <span class="tag tag-teal">React</span>
+            <span class="tag tag-teal">Node.js</span>
+            <span class="tag tag-teal">Git</span>
+          </div>
+        </div>
+
+        <div class="skills-group">
+          <div class="skills-group-label">AI &amp; Data</div>
+          <div class="tags">
+            <span class="tag tag-coral">Prompt Engineering</span>
+            <span class="tag tag-coral">LLM Workflows</span>
+            <span class="tag tag-coral">Data Analysis</span>
+            <span class="tag tag-coral">Claude / GPT APIs</span>
+          </div>
+        </div>
+
+        <div class="skills-group">
+          <div class="skills-group-label">Operations</div>
+          <div class="tags">
+            <span class="tag tag-faint">Project Management</span>
+            <span class="tag tag-faint">Finance Reporting</span>
+            <span class="tag tag-faint">Agile / Scrum</span>
+            <span class="tag tag-faint">TESOL Certified</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- LANGUAGES -->
+      <section class="section">
+        <div class="section-label">Languages</div>
+
+        <div class="lang-item" style="flex-direction: column; align-items: stretch;">
+          <div style="display:flex; justify-content:space-between;">
+            <span class="lang-name">English</span>
+            <span class="lang-level">Native-level</span>
+          </div>
+          <div class="lang-bar"><div class="lang-fill" style="width:100%"></div></div>
+        </div>
+
+        <div class="lang-item" style="flex-direction: column; align-items: stretch; margin-top:8px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span class="lang-name">Korean</span>
+            <span class="lang-level">Native</span>
+          </div>
+          <div class="lang-bar"><div class="lang-fill" style="width:100%"></div></div>
+        </div>
+
+      </section>
+
+      <!-- GLOBAL FOOTPRINT -->
+      <section class="section">
+        <div class="section-label">Global Footprint</div>
+        <div class="globe-row">
+          <span class="flag">🇺🇸 USA</span>
+          <span class="flag">🇰🇷 Korea</span>
+          <span class="flag">🇶🇦 Middle East</span>
+          <span class="flag">🇲🇾 SE Asia</span>
+          <span class="flag">40+ countries</span>
+        </div>
+      </section>
+
+    </aside>
+  </div>
+</div>
+
+<script>
+  // Subtle hover glow on experience items
+  document.querySelectorAll('.exp-item').forEach(el => {
+    el.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateX(2px)';
+      this.style.transition = 'transform 0.2s ease, border-color 0.25s, background 0.25s';
+    });
+    el.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateX(0)';
+    });
+  });
+
+  // Animate stat numbers on load
+  function animateCount(el, target, suffix='') {
+    let start = 0;
+    const duration = 1200;
+    const step = timestamp => {
+      if (!start) start = timestamp;
+      const progress = Math.min((timestamp - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(eased * target) + suffix;
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  const statNums = document.querySelectorAll('.stat-num');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const text = el.textContent;
+        const match = text.match(/^(\d+)(.*)$/);
+        if (match) animateCount(el, parseInt(match[1]), match[2]);
+        observer.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  statNums.forEach(n => observer.observe(n));
+</script>
+</body>
+</html>
