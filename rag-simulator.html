@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RAG Process Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #3B6FF0;
+    --blue-light: #EEF2FD;
+    --blue-mid: #6A93F5;
+    --purple: #8B5CF6;
+    --purple-light: #F3EFFE;
+    --green: #22C55E;
+    --green-light: #EDFAF3;
+    --orange: #F97316;
+    --orange-light: #FFF3EA;
+    --pink: #EC4899;
+    --pink-light: #FEF0F7;
+    --gray-50: #F8F9FB;
+    --gray-100: #F0F2F7;
+    --gray-200: #E2E6EF;
+    --gray-300: #C7CDD8;
+    --gray-400: #94A0B4;
+    --gray-600: #5A6478;
+    --gray-800: #1E2330;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 40px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    position: relative;
+  }
+
+  .step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    background: var(--gray-200);
+    color: var(--gray-400);
+  }
+
+  .step-circle.active {
+    background: var(--blue);
+    color: white;
+  }
+  .step-circle.done {
+    background: var(--green);
+    color: white;
+  }
+
+  .step-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-400);
+    transition: color 0.3s;
+    white-space: nowrap;
+  }
+  .step-label.active { color: var(--blue); }
+  .step-label.done { color: var(--green); }
+
+  .step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--gray-200);
+    margin: 0 8px;
+    border-radius: 2px;
+    transition: background 0.3s;
+  }
+  .step-line.done { background: var(--green); }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 44px 20px 32px;
+  }
+  .hero h1 {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+  }
+  .hero p {
+    font-size: 15px;
+    color: var(--gray-600);
+    max-width: 540px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Main layout */
+  .main {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Cards */
+  .card {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .card-num.blue { background: var(--blue); }
+  .card-num.orange { background: var(--orange); }
+
+  .card-header-text h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-800);
+  }
+  .card-header-text p {
+    font-size: 13px;
+    color: var(--gray-400);
+    margin-top: 2px;
+  }
+
+  .card-body { padding: 20px; }
+
+  /* Form elements */
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 7px;
+  }
+
+  textarea, input[type="text"], input[type="number"] {
+    width: 100%;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--gray-800);
+    background: var(--gray-50);
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  textarea:focus, input:focus {
+    border-color: var(--blue);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(59,111,240,0.1);
+  }
+
+  textarea { min-height: 140px; }
+
+  .char-count {
+    text-align: right;
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 4px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .hint { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.18s;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  .btn-blue { background: var(--blue); color: white; }
+  .btn-blue:hover:not(:disabled) { background: #2857D6; }
+
+  .btn-purple { background: var(--purple); color: white; }
+  .btn-purple:hover:not(:disabled) { background: #7C3AED; }
+
+  .btn-green { background: #16A34A; color: white; }
+  .btn-green:hover:not(:disabled) { background: #15803D; }
+
+  .btn-orange { background: var(--orange); color: white; }
+  .btn-orange:hover:not(:disabled) { background: #EA6A0A; }
+
+  .btn-gray { background: var(--gray-600); color: white; }
+  .btn-gray:hover:not(:disabled) { background: #4A5468; }
+
+  .btn-pink { background: var(--pink); color: white; }
+  .btn-pink:hover:not(:disabled) { background: #DB2777; }
+
+  .btn svg, .btn span.icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--gray-100); margin: 16px 0; }
+
+  /* Right panel */
+  .right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Status card */
+  .status-list { padding: 16px 20px; }
+  .status-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 14px;
+    color: var(--gray-600);
+  }
+  .status-item:last-child { border-bottom: none; }
+  .status-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gray-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .status-icon.done {
+    border-color: var(--green);
+    background: var(--green-light);
+    color: var(--green);
+  }
+  .status-icon.loading {
+    border-color: var(--blue);
+    background: var(--blue-light);
+  }
+
+  /* Section panel headers */
+  .panel-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-800);
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .panel-header .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-green { background: var(--green); }
+  .dot-purple { background: var(--purple); }
+  .dot-orange { background: var(--orange); }
+  .dot-blue { background: var(--blue); }
+  .dot-pink { background: var(--pink); }
+
+  .panel-sub { font-size: 12px; color: var(--gray-400); font-weight: 400; margin-left: auto; }
+
+  /* Empty state */
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--gray-400);
+  }
+  .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 13px; }
+
+  /* Chunk pills */
+  .chunks-panel { padding: 16px 20px; max-height: 280px; overflow-y: auto; }
+  .chunk-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-200);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .chunk-item:hover { border-color: var(--blue); background: var(--blue-light); }
+  .chunk-item.highlighted { border-color: var(--orange); background: var(--orange-light); }
+  .chunk-num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--blue);
+    font-family: 'DM Mono', monospace;
+    min-width: 28px;
+    padding-top: 1px;
+  }
+  .chunk-text {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.6;
+    font-family: 'DM Mono', monospace;
+    word-break: break-word;
+  }
+  .chunk-item { flex-direction: column; gap: 6px; }
+  .chunk-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .overlap-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: #FEF3C7;
+    color: #B45309;
+    border: 1px solid #FDE68A;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .overlap-start { background: #DBEAFE; color: #1D4ED8; border-color: #BFDBFE; }
+  .overlap-both  { background: #EDE9FE; color: #6D28D9; border-color: #DDD6FE; }
+  .hl-overlap-prev { background: #DBEAFE; border-radius: 2px; }
+  .hl-overlap-next { background: #FEF3C7; border-radius: 2px; }
+  .hl-overlap-both { background: #EDE9FE; border-radius: 2px; }
+  .overlap-legend {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 20px 0;
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* Embedding table */
+  .embeddings-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .embeddings-table th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-800);
+    padding: 10px 14px;
+    border-bottom: 1.5px solid var(--gray-200);
+  }
+  .embeddings-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
+  }
+  .embeddings-table tr:last-child td { border-bottom: none; }
+  .emb-chunk-id { font-weight: 600; color: var(--gray-800); white-space: nowrap; }
+  .emb-jump { color: var(--purple); font-weight: 500; cursor: pointer; text-decoration: none; margin-left: 6px; }
+  .emb-jump:hover { text-decoration: underline; }
+  .emb-terms { color: var(--gray-600); }
+  .emb-dims { color: var(--gray-400); font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* Retrieval results */
+  .retrieval-panel { padding: 16px 20px; }
+  .result-item {
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    background: var(--orange-light);
+    border-radius: var(--radius-sm);
+    border: 1px solid #FED7AA;
+  }
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .result-label { font-size: 12px; font-weight: 600; color: var(--orange); }
+  .result-view-link {
+    color: var(--blue);
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 13px;
+    margin-left: 5px;
+  }
+  .result-cos {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-600);
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+  .result-text { font-size: 12px; color: var(--gray-600); line-height: 1.5; font-family: 'DM Mono', monospace; }
+
+  /* Composed query */
+  .query-panel { padding: 16px 20px; }
+  .query-box {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: var(--gray-600);
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* AI Answer */
+  .answer-panel { padding: 16px 20px; }
+  .answer-box {
+    background: var(--pink-light);
+    border: 1px solid #FBCFE8;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--gray-800);
+    line-height: 1.7;
+  }
+
+  /* Grid for bottom panels */
+  .grid-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  select {
+    width: 100%;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--gray-800);
+    background: var(--gray-50);
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A0B4' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  select:focus { border-color: var(--blue); background-color: #fff; }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .toast.success { background: #16A34A; }
+  .toast.error { background: #DC2626; }
+  .toast.info { background: var(--blue); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .badge-green { background: var(--green-light); color: #16A34A; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+  .footer {
+    text-align: center;
+    padding: 30px 20px 0;
+    font-size: 12px;
+    color: var(--gray-400);
+  }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .progress-bar { padding: 0 16px; }
+    .step-label { display: none; }
+    .grid-bottom { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div class="progress-bar">
+  <div class="progress-step">
+    <div class="step-circle active" id="sc1">1</div>
+    <span class="step-label active" id="sl1">Chunk</span>
+  </div>
+  <div class="step-line" id="line1"></div>
+  <div class="progress-step">
+    <div class="step-circle" id="sc2">2</div>
+    <span class="step-label" id="sl2">Embed</span>
+  </div>
+  <div class="step-line" id="line2"></div>
+  <div class="progress-step">
+    <div class="step-circle" id="sc3">3</div>
+    <span class="step-label" id="sl3">Save</span>
+  </div>
+  <div class="step-line" id="line3"></div>
+  <div class="progress-step">
+    <div class="step-circle" id="sc4">4</div>
+    <span class="step-label" id="sl4">Query</span>
+  </div>
+  <div class="step-line" id="line4"></div>
+  <div class="progress-step">
+    <div class="step-circle" id="sc5">5</div>
+    <span class="step-label" id="sl5">Answer</span>
+  </div>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>RAG Process Visualizer</h1>
+  <p>Interactive demonstration of the Retrieval-Augmented Generation pipeline. Process your documents through chunking, embedding, and intelligent querying.</p>
+</div>
+
+<!-- Main Grid -->
+<div class="main">
+
+  <!-- Left Panel -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- Step 1: Chunk -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-num blue">1</div>
+        <div class="card-header-text">
+          <h2>Document Input &amp; Chunking</h2>
+          <p>Upload your document and configure chunking parameters</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <label for="doc-input">Paste your document content</label>
+        <textarea id="doc-input" placeholder="Paste your document content here (articles, handbooks, FAQs, transcripts, etc.)"></textarea>
+        <div class="char-count"><span id="char-count">0</span> characters</div>
+
+        <div class="grid-2">
+          <div>
+            <label for="chunk-size">Chunk Size</label>
+            <input type="number" id="chunk-size" value="350" min="50" max="2000" />
+            <div class="hint">Characters per chunk</div>
+          </div>
+          <div>
+            <label for="overlap">Overlap</label>
+            <input type="number" id="overlap" value="80" min="0" max="500" />
+            <div class="hint">Characters overlap between chunks</div>
+          </div>
+        </div>
+
+        <button class="btn btn-blue" id="btn-chunk" onclick="chunkDocument()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          Chunk Document
+        </button>
+
+        <button class="btn btn-purple" id="btn-embed" onclick="createEmbeddings()" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+          Create Embeddings
+        </button>
+
+        <button class="btn btn-green" id="btn-save" onclick="saveToVectorDB()" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12V5l2-3h6l2 3v7a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><path d="M6 2v4h4V2"/></svg>
+          Save to Vector DB
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Query -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-num orange">2</div>
+        <div class="card-header-text">
+          <h2>Query &amp; Retrieval</h2>
+          <p>Ask questions about your document content</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <label for="query-input">Enter your question</label>
+        <textarea id="query-input" style="min-height: 90px;" placeholder="What are the key points mentioned in the document?"></textarea>
+
+        <div class="grid-2" style="margin-top: 14px;">
+          <div>
+            <label for="top-n">Retrieve Top N</label>
+            <select id="top-n">
+              <option value="1">1 chunk</option>
+              <option value="2">2 chunks</option>
+              <option value="3" selected>3 chunks</option>
+              <option value="4">4 chunks</option>
+              <option value="5">5 chunks</option>
+            </select>
+          </div>
+          <div>
+            <label for="answer-mode">Answer Mode</label>
+            <select id="answer-mode">
+              <option value="extractive">Offline (Extractive)</option>
+              <option value="generative">Online (Generative)</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn btn-orange" id="btn-retrieve" onclick="retrieveChunks()" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M12 12l2 2"/></svg>
+          Retrieve Relevant Chunks
+        </button>
+
+        <button class="btn btn-gray" id="btn-compose" onclick="composeQuery()" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+          Compose Query
+        </button>
+
+        <button class="btn btn-pink" id="btn-answer" onclick="generateAnswer()" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 10a2 2 0 01-2 2H4l-2 4V4a2 2 0 012-2h8a2 2 0 012 2v6z"/></svg>
+          Generate Answer
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+
+    <!-- Process Status -->
+    <div class="card">
+      <div class="panel-header">
+        <span>Process Status</span>
+      </div>
+      <div class="status-list">
+        <div class="status-item">
+          Document Chunked
+          <div class="status-icon" id="status-chunk">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5l2.5 2.5L8 3"/></svg>
+          </div>
+        </div>
+        <div class="status-item">
+          Embeddings Created
+          <div class="status-icon" id="status-embed">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5l2.5 2.5L8 3"/></svg>
+          </div>
+        </div>
+        <div class="status-item">
+          Vector DB Ready
+          <div class="status-icon" id="status-save">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5l2.5 2.5L8 3"/></svg>
+          </div>
+        </div>
+        <div class="status-item">
+          Query Executed
+          <div class="status-icon" id="status-query">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5l2.5 2.5L8 3"/></svg>
+          </div>
+        </div>
+        <div class="status-item" style="border-bottom: none;">
+          Answer Generated
+          <div class="status-icon" id="status-answer">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5l2.5 2.5L8 3"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document Chunks -->
+    <div class="card">
+      <div class="panel-header">
+        <span class="dot dot-green"></span>
+        Document Chunks
+        <span class="panel-sub" id="chunk-count-label"></span>
+      </div>
+      <div id="chunks-content">
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="6" width="24" height="28" rx="3"/><path d="M14 14h12M14 20h12M14 26h8"/></svg>
+          <p>No chunks yet. Paste a document and click Chunk Document.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Embeddings & Metadata -->
+    <div class="card">
+      <div class="panel-header">
+        <span class="dot dot-purple"></span>
+        Embeddings &amp; Metadata
+        <span class="panel-sub">Vector representations of your document chunks</span>
+      </div>
+      <div id="embeddings-content">
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="28" width="4" height="6" rx="1"/><rect x="14" y="20" width="4" height="14" rx="1"/><rect x="22" y="14" width="4" height="20" rx="1"/><rect x="30" y="8" width="4" height="26" rx="1"/></svg>
+          <p>No embeddings created yet. Create embeddings after chunking your document.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Retrieval Results -->
+    <div class="card">
+      <div class="panel-header">
+        <span class="dot dot-orange"></span>
+        Retrieval Results
+        <span class="panel-sub">Most relevant chunks for your query</span>
+      </div>
+      <div id="retrieval-content">
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="18" r="10"/><path d="M26 26l8 8"/></svg>
+          <p>No results yet. Complete the setup and run a query to see results.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Composed Query + AI Answer -->
+    <div class="grid-bottom">
+      <div class="card">
+        <div class="panel-header">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--gray-800)" stroke-width="1.5" style="flex-shrink:0"><path d="M3 4h12M3 8h8M3 12h5"/><path d="M13 10l2 2-2 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            <div style="font-size:15px;font-weight:600;color:var(--gray-800);">Composed Query</div>
+            <div style="font-size:12px;color:var(--gray-400);margin-top:2px;">Final prompt sent to the LLM with context</div>
+          </div>
+        </div>
+        <div id="composed-content">
+          <div class="empty-state" style="padding: 24px 20px;">
+            <p>Compose the prompt after retrieving chunks.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="panel-header" style="align-items:flex-start;">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--pink)" stroke-width="1.5" style="flex-shrink:0;margin-top:2px"><path d="M20 13a2 2 0 01-2 2H5l-3 4V4a2 2 0 012-2h14a2 2 0 012 2v9z"/></svg>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:18px;font-weight:700;color:var(--gray-800);line-height:1.2;">AI<br>Answer</div>
+              <div id="answer-meta" style="font-size:12px;color:var(--gray-400);text-align:right;line-height:1.5;"></div>
+            </div>
+            <div style="font-size:12px;color:var(--gray-400);margin-top:6px;">Generated response based on your document</div>
+          </div>
+        </div>
+        <div id="answer-content">
+          <div class="empty-state" style="padding: 24px 20px;">
+            <p>No answer yet. Complete the workflow to get a response.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">Demo for learning RAG · Data stays in your browser · No API calls made</div>
+
+<script>
+  const state = {
+    chunks: [],
+    embeddings: [],
+    retrievedChunks: [],
+    composedQuery: '',
+    answer: '',
+    steps: { chunk: false, embed: false, save: false, query: false, answer: false }
+  };
+
+  // Char count
+  document.getElementById('doc-input').addEventListener('input', function() {
+    document.getElementById('char-count').textContent = this.value.length;
+  });
+
+  function showToast(msg, type = 'info') {
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  function setStatus(id, done) {
+    const el = document.getElementById('status-' + id);
+    if (done) {
+      el.classList.add('done');
+    } else {
+      el.classList.remove('done');
+    }
+  }
+
+  function setStepProgress(step) {
+    const steps = ['sc1','sc2','sc3','sc4','sc5'];
+    const labels = ['sl1','sl2','sl3','sl4','sl5'];
+    const lines = ['line1','line2','line3','line4'];
+
+    steps.forEach((id, i) => {
+      const el = document.getElementById(id);
+      const lel = document.getElementById(labels[i]);
+      el.classList.remove('active','done');
+      lel.classList.remove('active','done');
+      if (i + 1 < step) {
+        el.classList.add('done');
+        lel.classList.add('done');
+        el.textContent = '✓';
+      } else if (i + 1 === step) {
+        el.classList.add('active');
+        lel.classList.add('active');
+      }
+    });
+    lines.forEach((id, i) => {
+      const el = document.getElementById(id);
+      el.classList.toggle('done', i + 1 < step);
+    });
+  }
+
+  function simulateEmbeddingVector(seed) {
+    const vec = [];
+    let x = seed * 9301 + 49297;
+    for (let i = 0; i < 24; i++) {
+      x = (x * 9301 + 49297) % 233280;
+      vec.push(x / 233280);
+    }
+    return vec;
+  }
+
+  function cosineSimilarity(v1, v2) {
+    let dot = 0, n1 = 0, n2 = 0;
+    for (let i = 0; i < v1.length; i++) {
+      dot += v1[i] * v2[i];
+      n1 += v1[i] * v1[i];
+      n2 += v2[i] * v2[i];
+    }
+    return dot / (Math.sqrt(n1) * Math.sqrt(n2));
+  }
+
+  function textToVector(text) {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash * 31 + text.charCodeAt(i)) & 0xFFFFFFFF;
+    }
+    return simulateEmbeddingVector(Math.abs(hash));
+  }
+
+  function scoreChunkForQuery(chunk, query) {
+    const qWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const chunkL = chunk.toLowerCase();
+    let hits = 0;
+    qWords.forEach(w => { if (chunkL.includes(w)) hits++; });
+    const lexical = qWords.length > 0 ? hits / qWords.length : 0;
+    const cosine = cosineSimilarity(textToVector(chunk), textToVector(query));
+    return Math.min(1, 0.45 * lexical + 0.55 * cosine + 0.02);
+  }
+
+  function chunkDocument() {
+    const text = document.getElementById('doc-input').value.trim();
+    const chunkSize = parseInt(document.getElementById('chunk-size').value) || 350;
+    const overlap = parseInt(document.getElementById('overlap').value) || 80;
+
+    if (text.length < 40) {
+      showToast('Please paste at least 40 characters of content.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-chunk');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span> Chunking...';
+
+    setTimeout(() => {
+      state.chunks = [];
+      state.chunkMeta = [];
+      let i = 0;
+      const starts = [];
+      while (i < text.length) {
+        starts.push(i);
+        i += chunkSize - overlap;
+        if (i + overlap >= text.length && i < text.length) {
+          starts.push(i);
+          break;
+        }
+      }
+      starts.forEach((start, idx) => {
+        const end = Math.min(start + chunkSize, text.length);
+        const chunkText = text.slice(start, end);
+        state.chunks.push(chunkText);
+        // overlap with previous chunk: first `overlap` chars (if not first chunk)
+        const prevOverlapLen = idx > 0 ? overlap : 0;
+        // overlap with next chunk: last `overlap` chars (if not last chunk)
+        const nextOverlapLen = idx < starts.length - 1 ? overlap : 0;
+        state.chunkMeta.push({ prevOverlapLen, nextOverlapLen, len: chunkText.length });
+      });
+
+      state.steps.chunk = true;
+      setStatus('chunk', true);
+      document.getElementById('btn-embed').disabled = false;
+      document.getElementById('chunk-count-label').textContent = state.chunks.length + ' chunks';
+
+      renderChunks();
+      setStepProgress(2);
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> Chunk Document';
+      showToast(`Created ${state.chunks.length} chunks successfully!`, 'success');
+    }, 600);
+  }
+
+  function renderChunks() {
+    const container = document.getElementById('chunks-content');
+    if (!state.chunks.length) {
+      container.innerHTML = `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="8" y="6" width="24" height="28" rx="3"/><path d="M14 14h12M14 20h12M14 26h8"/></svg><p>No chunks yet.</p></div>`;
+      return;
+    }
+    const meta = state.chunkMeta || [];
+
+    function buildHighlightedText(text, prevLen, nextLen) {
+      const len = text.length;
+      // Both ends overlap
+      if (prevLen > 0 && nextLen > 0 && prevLen + nextLen >= len) {
+        return `<span class="hl-overlap-both">${escHtml(text)}</span>`;
+      }
+      let html = '';
+      let pos = 0;
+      // prev overlap: start of chunk
+      if (prevLen > 0) {
+        html += `<span class="hl-overlap-prev">${escHtml(text.slice(0, prevLen))}</span>`;
+        pos = prevLen;
+      }
+      // next overlap: end of chunk
+      const nextStart = nextLen > 0 ? len - nextLen : len;
+      if (nextStart > pos) {
+        html += escHtml(text.slice(pos, nextStart));
+      }
+      if (nextLen > 0) {
+        html += `<span class="hl-overlap-next">${escHtml(text.slice(nextStart))}</span>`;
+      }
+      return html;
+    }
+
+    const legend = `<div class="overlap-legend">
+      <span><span class="legend-dot" style="background:#DBEAFE;"></span>Overlap from prev chunk</span>
+      <span><span class="legend-dot" style="background:#FEF3C7;"></span>Overlap into next chunk</span>
+      <span><span class="legend-dot" style="background:#EDE9FE;"></span>Both overlaps</span>
+    </div>`;
+
+    const items = state.chunks.map((c, i) => {
+      const m = meta[i] || { prevOverlapLen: 0, nextOverlapLen: 0, len: c.length };
+      const tags = [];
+      if (m.prevOverlapLen > 0) tags.push(`<span class="overlap-tag overlap-start">↩ prev overlap: ${m.prevOverlapLen}c</span>`);
+      if (m.nextOverlapLen > 0) tags.push(`<span class="overlap-tag">next overlap: ${m.nextOverlapLen}c ↪</span>`);
+      const highlighted = buildHighlightedText(c, m.prevOverlapLen, m.nextOverlapLen);
+      return `<div class="chunk-item" id="chunk-${i}" onclick="highlightChunk(${i})">
+        <div class="chunk-meta">
+          <span class="chunk-num">#${String(i+1).padStart(3,'0')}</span>
+          ${tags.join('')}
+          <span style="margin-left:auto;font-size:11px;color:var(--gray-400);font-family:'DM Mono',monospace">${c.length}c</span>
+        </div>
+        <span class="chunk-text">${highlighted}</span>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = `${legend}<div class="chunks-panel">${items}</div>`;
+  }
+
+  function highlightChunk(idx) {
+    document.querySelectorAll('.chunk-item').forEach(el => el.classList.remove('highlighted'));
+    const el = document.getElementById('chunk-' + idx);
+    if (el) { el.classList.add('highlighted'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  }
+
+  function createEmbeddings() {
+    if (!state.steps.chunk) { showToast('Chunk your document first.', 'error'); return; }
+    const btn = document.getElementById('btn-embed');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span> Embedding...';
+
+    setTimeout(() => {
+      const stopWords = new Set(['the','and','for','are','but','not','you','all','can','her','was','one','our','out','had','him','his','has','how','its','who','did','get','may','now','two','any','him','she','too','use','said','that','this','with','have','from','they','will','been','their','there','were','when','what','which','your','more','also','into','than','then','them','these','some','just','such','over','even','most','only','very','well','each','after','about','would','could','other','those','time','like','make','know','take','year','good','much','come','work','back','data','used']);
+      function topTerms(text) {
+        const freq = {};
+        text.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).forEach(w => {
+          if (w.length > 2 && !stopWords.has(w)) freq[w] = (freq[w]||0) + 1;
+        });
+        return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,6).map(e=>e[0]);
+      }
+      state.embeddings = state.chunks.map((c, i) => ({
+        id: i,
+        vector: simulateEmbeddingVector(i * 7 + c.length),
+        dims: Math.min(c.split(/\s+/).filter(Boolean).length * 4 + 10, 1536),
+        topTerms: topTerms(c)
+      }));
+
+      state.steps.embed = true;
+      setStatus('embed', true);
+      document.getElementById('btn-save').disabled = false;
+      setStepProgress(3);
+
+      renderEmbeddings();
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg> Create Embeddings';
+      showToast('Embeddings created for all chunks!', 'success');
+    }, 800);
+  }
+
+  function renderEmbeddings() {
+    const container = document.getElementById('embeddings-content');
+    if (!state.embeddings.length) {
+      container.innerHTML = `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="28" width="4" height="6" rx="1"/><rect x="14" y="20" width="4" height="14" rx="1"/><rect x="22" y="14" width="4" height="20" rx="1"/><rect x="30" y="8" width="4" height="26" rx="1"/></svg><p>No embeddings yet.</p></div>`;
+      return;
+    }
+
+    function makeSpark(vector) {
+      const w = 120, h = 24, pts = vector.slice(0, 40);
+      const min = Math.min(...pts), max = Math.max(...pts);
+      const range = max - min || 1;
+      const step = w / (pts.length - 1);
+      const coords = pts.map((v, i) => {
+        const x = (i * step).toFixed(1);
+        const y = (h - ((v - min) / range) * (h - 4) - 2).toFixed(1);
+        return `${x},${y}`;
+      }).join(' ');
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block">
+        <polyline points="${coords}" fill="none" stroke="#6D28D9" stroke-width="1.2" stroke-linejoin="round" opacity="0.7"/>
+      </svg>`;
+    }
+
+    const rows = state.embeddings.map(e =>
+      `<tr>
+        <td><span class="emb-chunk-id">#${e.id}</span><a class="emb-jump" onclick="highlightChunk(${e.id})">jump</a></td>
+        <td class="emb-terms">${e.topTerms.join(', ')}</td>
+        <td class="emb-dims">${e.dims}</td>
+        <td>${makeSpark(e.vector)}</td>
+      </tr>`
+    ).join('');
+
+    container.innerHTML = `<div style="overflow-x:auto;">
+      <table class="embeddings-table">
+        <thead><tr>
+          <th>Chunk</th>
+          <th>Top terms</th>
+          <th>Dims</th>
+          <th>Spark</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  function saveToVectorDB() {
+    if (!state.steps.embed) { showToast('Create embeddings first.', 'error'); return; }
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+    setTimeout(() => {
+      state.steps.save = true;
+      setStatus('save', true);
+      document.getElementById('btn-retrieve').disabled = false;
+      setStepProgress(4);
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12V5l2-3h6l2 3v7a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><path d="M6 2v4h4V2"/></svg> Save to Vector DB';
+      showToast(`${state.chunks.length} chunks saved to Vector DB!`, 'success');
+    }, 600);
+  }
+
+  function retrieveChunks() {
+    const query = document.getElementById('query-input').value.trim();
+    if (!query) { showToast('Enter a question first.', 'error'); return; }
+    if (!state.steps.save) { showToast('Save to Vector DB first.', 'error'); return; }
+
+    const topN = parseInt(document.getElementById('top-n').value);
+    const btn = document.getElementById('btn-retrieve');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span> Retrieving...';
+
+    setTimeout(() => {
+      const scored = state.chunks.map((c, i) => ({
+        idx: i, text: c,
+        score: scoreChunkForQuery(c, query)
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      state.retrievedChunks = scored.slice(0, topN);
+
+      state.steps.query = true;
+      setStatus('query', true);
+      document.getElementById('btn-compose').disabled = false;
+      setStepProgress(4);
+
+      renderRetrievalResults();
+      state.retrievedChunks.forEach(r => highlightChunk(r.idx));
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M12 12l2 2"/></svg> Retrieve Relevant Chunks';
+      showToast(`Retrieved top ${topN} relevant chunk(s)!`, 'success');
+    }, 700);
+  }
+
+  function renderRetrievalResults() {
+    const container = document.getElementById('retrieval-content');
+    if (!state.retrievedChunks.length) {
+      container.innerHTML = `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="18" r="10"/><path d="M26 26l8 8"/></svg><p>No results yet.</p></div>`;
+      return;
+    }
+    const html = `<div class="retrieval-panel">${state.retrievedChunks.map((r, i) =>
+      `<div class="result-item">
+        <div class="result-header">
+          <span class="result-label">Chunk #${r.idx} <a class="result-view-link" onclick="highlightChunk(${r.idx})">view</a></span>
+          <span class="result-cos">cos ${r.score.toFixed(3)}</span>
+        </div>
+        <div class="result-text">${escHtml(r.text.slice(0, 220))}${r.text.length > 220 ? '…' : ''}</div>
+      </div>`
+    ).join('')}</div>`;
+    container.innerHTML = html;
+  }
+
+  function composeQuery() {
+    const query = document.getElementById('query-input').value.trim();
+    if (!state.retrievedChunks.length) { showToast('Retrieve chunks first.', 'error'); return; }
+
+    const dataBlocks = state.retrievedChunks.map((r, i) =>
+      `[[chunk_${r.idx}]]\n${r.text}`
+    ).join('\n\n');
+
+    state.composedQuery = `Answer the following user query based only on the provided data.\nuser_query: ${query}\n\nData:\n${dataBlocks}`;
+
+    const container = document.getElementById('composed-content');
+    container.innerHTML = `<div class="query-panel"><div class="query-box">${escHtml(state.composedQuery)}</div></div>`;
+
+    document.getElementById('btn-answer').disabled = false;
+    showToast('Query composed with context!', 'info');
+  }
+
+  function generateAnswer() {
+    if (!state.composedQuery) { showToast('Compose query first.', 'error'); return; }
+
+    const btn = document.getElementById('btn-answer');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span> Generating...';
+
+    setTimeout(() => {
+      const mode = document.getElementById('answer-mode').value;
+      const query = document.getElementById('query-input').value.trim().toLowerCase();
+      const context = state.retrievedChunks.map(r => r.text).join(' ');
+
+      let answer;
+      if (mode === 'extractive') {
+        const sentences = context.match(/[^.!?]+[.!?]+/g) || [context];
+        const qWords = query.split(/\s+/).filter(w => w.length > 3);
+        const scored = sentences.map(s => {
+          const sl = s.toLowerCase();
+          const hits = qWords.filter(w => sl.includes(w)).length;
+          return { s, score: hits };
+        });
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored.slice(0, 3).map(x => x.s.trim()).filter(Boolean);
+        answer = top.length
+          ? `Based on the retrieved document context:\n\n${top.join(' ')}`
+          : `The retrieved context contains the following relevant information:\n\n${context.slice(0, 400)}...`;
+      } else {
+        answer = `Based on the retrieved context, here is a synthesized answer to your question:\n\n${context.slice(0, 300)}...\n\n[Note: In a real RAG system, this would be generated by an LLM (e.g., Claude, GPT-4) using the retrieved context as grounding.]`;
+      }
+
+      state.answer = answer;
+      state.steps.answer = true;
+      setStatus('answer', true);
+      setStepProgress(5);
+
+      const topN = parseInt(document.getElementById('top-n').value);
+      const metaEl = document.getElementById('answer-meta');
+      if (metaEl) metaEl.textContent = `Top N: ${topN} • Retrieved from local vector DB`;
+
+      const container = document.getElementById('answer-content');
+      container.innerHTML = `<div class="answer-panel"><div class="answer-box">${escHtml(answer)}</div></div>`;
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 10a2 2 0 01-2 2H4l-2 4V4a2 2 0 012-2h8a2 2 0 012 2v6z"/></svg> Generate Answer';
+      showToast('Answer generated!', 'success');
+    }, 900);
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
